@@ -1,8 +1,17 @@
+"use client";
 import { ArrowRight, Check, Github, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRef } from 'react';
+import FetchingForm from '@/components/FetchingForm';
 
 export default function Home() {
+  const targetRef = useRef<HTMLDivElement | null>(null);
+  const scrollToTarget = () => {
+    if (targetRef.current) {
+      targetRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       {/* Hero Section */}
@@ -21,7 +30,7 @@ export default function Home() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="text-lg px-8 py-3 group">
+            <Button onClick={scrollToTarget} size="lg" className="text-lg px-8 py-3 group">
               Get Started
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
@@ -31,6 +40,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <section ref={targetRef} className="py-20 md:py-28">
+        <FetchingForm />
+        </section>
     </div>
   );
 }
