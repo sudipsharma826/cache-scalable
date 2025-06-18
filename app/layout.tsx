@@ -8,8 +8,8 @@ import { Footer } from '@/components/footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'MyApp - Beautiful & Scalable',
-  description: 'A modern Next.js application with beautiful design and scalable architecture',
+  title: 'Cache Scalable Performance Analysis',
+  description: 'Analyze the performance of cache scalability in a web application',
 };
 
 export default function RootLayout({
