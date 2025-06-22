@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import ProductModel from "@/lib/models/ProductModels";
 import { client } from "@/lib/redis";
 import { FetchingFormData } from "@/lib/types";
+import { saveFetchTiming } from "@/app/actions/ReportFetching";
 
 export interface FetchDataResponse {
   success: boolean;
@@ -133,15 +134,15 @@ export async function fetchData(data: FetchingFormData): Promise<FetchDataRespon
           () => client.lrange("products", 0, limit - 1),
           'cacheRead'
         );
-        
+
         if (cachedData.length >= limit) {
-          // If we have enough data in cache, return it
+          // Cache HIT: enough data in cache
           const parsedData = cachedData.map(item => JSON.parse(item)).slice(0, limit);
           const ttl = await timeOperation(
             () => client.ttl("products"),
             'cacheRead'
           );
-          
+
           response.success = true;
           response.data = parsedData;
           response.count = parsedData.length;
@@ -151,17 +152,21 @@ export async function fetchData(data: FetchingFormData): Promise<FetchDataRespon
             ttl
           };
         } else {
-          // If not enough in cache, get the rest from DB
-          const dbData = await timeOperation(async () => {
-            await connectDB();
-            const remainingLimit = limit - cachedData.length;
-            return await ProductModel.find({}).limit(remainingLimit).lean();
-          }, 'dbQuery');
-          
-          // Parse cached data
+          // Cache MISS: not enough data in cache, get the rest from DB
           const parsedCached = cachedData.map(item => JSON.parse(item));
+          const remainingLimit = limit - parsedCached.length;
+
+          // Only fetch from DB if we need more data
+          let dbData: any[] = [];
+          if (remainingLimit > 0) {
+            dbData = await timeOperation(async () => {
+              await connectDB();
+              return await ProductModel.find({}).limit(remainingLimit).lean();
+            }, 'dbQuery');
+          }
+
           const combinedData = [...parsedCached, ...dbData];
-          
+
           // Update cache with combined data if we got new data from DB
           if (dbData.length > 0) {
             await timeOperation(async () => {
@@ -171,19 +176,19 @@ export async function fetchData(data: FetchingFormData): Promise<FetchDataRespon
               await client.expire("products", 60 * 60 * 24);
             }, 'cacheWrite');
           }
-          
+
           // Get final TTL
           const ttl = await timeOperation(
             () => client.ttl("products"),
             'cacheRead'
           );
-          
+
           response.success = true;
           response.data = combinedData;
           response.count = combinedData.length;
           response.source = 'hybrid';
           response.cacheInfo = {
-            hit: false,
+            hit: false, // Mark as cache miss
             ttl
           };
         }
@@ -197,7 +202,17 @@ export async function fetchData(data: FetchingFormData): Promise<FetchDataRespon
 
     // Update total time and log results
     updateTotalTime();
-    
+
+    // Save timing to Redis for reporting
+    try {
+      await saveFetchTiming(mode, {
+        timestamp: Date.now(),
+        total: response.timing?.total || 0,
+      });
+    } catch (timingErr) {
+      console.error("Failed to record timing in Redis:", timingErr);
+    }
+
     console.log(`[${new Date().toISOString()}] ${mode} fetch completed in ${response.timing?.total}ms`, 
       response.success ? `(found ${response.count} items)` : `(error: ${response.error})`,
       `\nTiming details: ${JSON.stringify(response.timing, null, 2)}`

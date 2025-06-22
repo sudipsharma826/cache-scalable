@@ -46,7 +46,7 @@ export default function Home() {
                 asChild
               >
                 <a 
-                  href="https://github.com/yourusername/cache-scalable" 
+                  href="https://github.com/sudipsharma826/cache-scalable" 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >

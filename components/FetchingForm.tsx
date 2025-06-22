@@ -23,7 +23,7 @@ interface FetchResult {
   source: "db" | "cache" | "hybrid";
   data: Product[];
   count: number;
-  timing: {
+  timing?: {
     total: number;
     dbQuery: number;
     cacheRead: number;
@@ -106,18 +106,22 @@ export default function FetchingForm() {
         success: true,
         data: response.data || [],
         count: response.count || 0,
-        timing: response.timing || {
-          total: 0,
-          dbQuery: 0,
-          cacheRead: 0,
-          cacheWrite: 0
+        timing: {
+          total: response.timing?.total ?? 0,
+          dbQuery: response.timing?.dbQuery ?? 0,
+          cacheRead: response.timing?.cacheRead ?? 0,
+          cacheWrite: response.timing?.cacheWrite ?? 0,
         },
         cacheInfo: response.cacheInfo || { hit: false },
         fetchTimeMs,
         source: mode,
         dataSource: mode,
         cacheStatus: (() => {
-          if (mode === "cache") return "hit";
+          if (mode === "cache") {
+            // Show "miss" if cacheInfo.hit is false or if returned data is less than requested limit
+            if (!response.cacheInfo?.hit || (response.data?.length ?? 0) < limit) return "miss";
+            return "hit";
+          }
           if (mode === "hybrid") return response.cacheInfo?.hit ? "hit" : "miss";
           return "none";
         })(),
@@ -125,10 +129,9 @@ export default function FetchingForm() {
       };
 
       setResult(updatedResult);
-      console.log("Fetch successful, data count:", response.data?.length);
     } catch (error) {
       console.error("Error fetching data:", error);
-      setError((error as Error).message);
+      setError((error as Error).message || "Unknown error occurred");
     } finally {
       setLoading(false);
     }
@@ -174,6 +177,9 @@ export default function FetchingForm() {
     }
   };
 
+
+
+
   return (
     <div className="w-full">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -213,9 +219,9 @@ export default function FetchingForm() {
                     type="number"
                     id="product-count"
                     min="1"
-                    max="1000"
+                    max="100"
                     value={limit}
-                    onChange={(e) => setLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    onChange={(e) => setLimit(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
                     className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-12 py-2.5 sm:text-sm border border-gray-300 rounded-md"
                     placeholder="Enter number of products"
                     disabled={loading}
@@ -226,6 +232,11 @@ export default function FetchingForm() {
                 </div>
               </div>
             </div>
+            
+            {/* Error message display */}
+            {error && (
+              <div className="text-red-600 text-sm font-medium">{error}</div>
+            )}
             
             <div className="flex justify-end">
               <button

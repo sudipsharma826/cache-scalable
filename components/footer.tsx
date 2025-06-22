@@ -1,5 +1,5 @@
 import React from 'react'
-import { Heart, Github, Twitter, Linkedin } from 'lucide-react'
+import { Heart, Github, Twitter, Linkedin, Facebook, Link } from 'lucide-react'
 
 export function Footer() {
   return (
@@ -11,31 +11,37 @@ export function Footer() {
               <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                 <div className="flex space-x-4">
                 <a
-                  href="#"
+                  href="https://github.com/sudipsharma826"
                   className="text-muted-foreground hover:text-primary transition-colors duration-200"
                   aria-label="GitHub"
                 >
                   <Github className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
-                  className="text-muted-foreground hover:text-primary transition-colors duration-200"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a
-                  href="#"
+                  href="https://linkedin.com/in/sudipsharmanp"
                   className="text-muted-foreground hover:text-primary transition-colors duration-200"
                   aria-label="LinkedIn"
                 >
                   <Linkedin className="h-5 w-5" />
                 </a>
+                <a
+                  href="https://www.facebook.com/sudipsharma.np/"
+                  className="text-muted-foreground hover:text-primary transition-colors duration-200"
+                  aria-label="Fac
+                  ebook"
+                >
+                  <Facebook className="h-5 w-5" />
+                </a>
+                
               </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()}   Sudip Sharma.
-              </p>
+  © {new Date().getFullYear()}{" "}
+  <span>
+    <Link to="https://sudipsharma.info.np" className='cursor-pointer'>Sudip Sharma</Link>
+  </span>
+</p>
+
             </div>
           </div>
         </div>

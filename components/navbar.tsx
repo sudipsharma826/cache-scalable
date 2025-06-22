@@ -47,7 +47,7 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
-            <Link href="#" className="nav-link">Home</Link>
+            <Link href="/" className="nav-link">Home</Link>
 
             {/* Dropdown */}
             <div
@@ -65,17 +65,18 @@ export function Navbar() {
               </div>
             )}
             </div>
+            <Link href="/analysis" className="nav-link">Performance Analysis</Link>
 
-            <Link href="#" className="nav-link">Contact</Link>
+            
 
             {/* GitHub Button */}
-            <Link
-              href="#"
+            <a
+              href="https://github.com/sudipsharma826/cache-scalable"
               aria-label="GitHub"
               className="text-muted-foreground hover:text-primary transition"
             >
               <Github className="h-5 w-5" />
-            </Link>
+            </a>
           </div>
 
           {/* Right Controls */}
