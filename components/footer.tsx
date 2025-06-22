@@ -1,5 +1,5 @@
-import React from 'react'
-import { Heart, Github, Twitter, Linkedin, Facebook, Link } from 'lucide-react'
+import React from 'react';
+import { Heart, Github, Twitter, Linkedin, Facebook } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -8,12 +8,14 @@ export function Footer() {
         <div className="py-12">
           <div className="mt-12 pt-8 border-t border-border/40">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                <div className="flex space-x-4">
+              {/* Social Icons */}
+              <div className="flex items-center space-x-4">
                 <a
                   href="https://github.com/sudipsharma826"
                   className="text-muted-foreground hover:text-primary transition-colors duration-200"
                   aria-label="GitHub"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Github className="h-5 w-5" />
                 </a>
@@ -21,31 +23,38 @@ export function Footer() {
                   href="https://linkedin.com/in/sudipsharmanp"
                   className="text-muted-foreground hover:text-primary transition-colors duration-200"
                   aria-label="LinkedIn"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Linkedin className="h-5 w-5" />
                 </a>
                 <a
                   href="https://www.facebook.com/sudipsharma.np/"
                   className="text-muted-foreground hover:text-primary transition-colors duration-200"
-                  aria-label="Fac
-                  ebook"
+                  aria-label="Facebook"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Facebook className="h-5 w-5" />
                 </a>
-                
               </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-  © {new Date().getFullYear()}{" "}
-  <span>
-    <Link to="https://sudipsharma.info.np" className='cursor-pointer'>Sudip Sharma</Link>
-  </span>
-</p>
 
+              {/* Copyright */}
+              <p className="text-sm text-muted-foreground text-center md:text-right">
+                © {new Date().getFullYear()}{" "}
+                <a
+                  href="https://sudipsharma.info.np"
+                  className="underline hover:text-primary transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Sudip Sharma
+                </a>
+              </p>
             </div>
           </div>
         </div>
       </div>
     </footer>
-  )
+  );
 }
