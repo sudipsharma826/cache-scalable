@@ -1,48 +1,39 @@
-export type FetchingFormData = {
-  mode: 'db' | 'cache' | 'hybrid';
-  limit: number;
+export type FetchingFormData ={
+    mode: string;
+    limit: number;
 };
-
-export interface FetchResult {
-  data: Product[];
-  responseTime: number;
-  mode: string;
-  limit: number;
-  cacheHit?: boolean;
+export type FetchResult = {
+  // Core response data
+  success: boolean;
+  data: any[];
   error?: string;
-}
-
-export interface Product {
-  _id?: string;
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  company: string;
-  avatar: string;
-  material: string;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  __v?: number;
-}
-
-export interface CachedProduct extends Omit<Product, '_id'> {
-  _id: string;
-}
-
-export interface ResponseTimeMetric {
-  timestamp: number;
-  mode: 'db' | 'cache' | 'hybrid';
-  responseTime: number;
-}
-
-export interface CacheInfo {
+  
+  // Source and metadata
+  source: 'db' | 'cache' | 'hybrid';
   count: number;
-  ttl: number;
-}
-
-export interface ResponseTimeStats {
-  db: number[];
-  cache: number[];
-  hybrid: number[];
-}
+  
+  // Performance timing
+  timing: {
+    total: number;
+    dbQuery: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
+  
+  // Cache information
+  cacheInfo: {
+    hit: boolean;
+    ttl?: number;
+  };
+  
+  // Additional metrics
+  fetchTimeMs: number;
+  cacheStatus: 'hit' | 'miss' | 'none';
+  dataSource: 'db' | 'cache' | 'hybrid';
+  
+  // Timestamp for when the result was generated
+  timestamp: number;
+  
+  // Optional fields for display
+  message?: string;
+};

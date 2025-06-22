@@ -1,48 +1,74 @@
 "use client";
-import { ArrowRight, Check, Github, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { useRef } from 'react';
+import { ArrowRight, Github, BarChart2, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import FetchingForm from '@/components/FetchingForm';
+import { RedisPanel } from '@/components/RedisPanel';
 
 export default function Home() {
-  const targetRef = useRef<HTMLDivElement | null>(null);
-  const scrollToTarget = () => {
-    if (targetRef.current) {
-      targetRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+  const featuresRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
-      <section className="py-20 md:py-28">
-        <div className="text-center space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-              Cache Scable Performace
-              <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                {' '}Analytics
-              </span>
+      <section className="pt-24 pb-16 md:pt-32 md:pb-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
+              <Zap className="w-4 h-4 mr-2" />
+              Performance Optimized
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Cache Scalable Performance Analysis
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Get a overview of the performace scable with caching and analytics.
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              Get a comprehensive overview of performance scaling with caching and analytics.
+              Optimize your application's speed and efficiency with real-time insights.
             </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button onClick={scrollToTarget} size="lg" className="text-lg px-8 py-3 group">
-              Get Started
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-              <Star className=" text-yellow-400 mr-2 h-5 w-5" /> <span><Github /></span>
-            </Button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+              <Button 
+                size="lg" 
+                className="group"
+                onClick={scrollToFeatures}
+              >
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="gap-2"
+                asChild
+              >
+                <a 
+                  href="https://github.com/yourusername/cache-scalable" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Github className="h-5 w-5" />
+                  View on GitHub
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
-      <section ref={targetRef} className="py-20 md:py-28">
-        <FetchingForm />
-        </section>
+
+      {/* Features Section */}
+      <section ref={featuresRef} className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+
+          <div className="space-y-8">
+            <FetchingForm />
+            <RedisPanel />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

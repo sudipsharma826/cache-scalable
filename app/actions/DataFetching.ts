@@ -3,143 +3,217 @@
 import connectDB from "@/lib/db";
 import ProductModel from "@/lib/models/ProductModels";
 import { client } from "@/lib/redis";
-import { FetchingFormData, FetchResult, Product, CachedProduct } from "@/lib/types";
+import { FetchingFormData } from "@/lib/types";
 
-export async function fetchData(data: FetchingFormData): Promise<FetchResult> {
-  const { mode, limit } = data;
+export interface FetchDataResponse {
+  success: boolean;
+  data?: any[];
+  error?: string;
+  source?: 'database' | 'cache' | 'hybrid';
+  count?: number;
+  timing?: {
+    total: number;
+    dbQuery?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+  };
+  cacheInfo?: {
+    hit: boolean;
+    ttl?: number;
+  };
+}
+
+export async function fetchData(data: FetchingFormData): Promise<FetchDataResponse> {
+  const { mode, limit = 10 } = data;
+  console.log(`[${new Date().toISOString()}] Fetching data with mode: ${mode}, limit: ${limit}`);
+
   const startTime = Date.now();
-  let responseTime = 0;
-  let result: Product[] = [];
-  let cacheHit = false;
+  let dbQueryStart = 0;
+  let cacheReadStart = 0;
+  let cacheWriteStart = 0;
+  
+  const response: FetchDataResponse = {
+    success: false,
+    source: mode as 'database' | 'cache' | 'hybrid',
+    cacheInfo: { hit: false },
+    timing: {
+      total: 0,
+      dbQuery: 0,
+      cacheRead: 0,
+      cacheWrite: 0
+    }
+  };
+  
+  const updateTotalTime = () => {
+    if (response.timing) {
+      response.timing.total = Date.now() - startTime;
+    }
+  };
+  
+  const timeOperation = async <T>(operation: () => Promise<T>, timeRef: keyof NonNullable<FetchDataResponse['timing']>): Promise<T> => {
+    const start = Date.now();
+    try {
+      return await operation();
+    } finally {
+      if (response.timing) {
+        response.timing[timeRef] = (response.timing[timeRef] || 0) + (Date.now() - start);
+      }
+    }
+  };
 
   try {
-    await client.connect();
-
     switch (mode) {
       case "db": {
-        await connectDB();
-        const dbData = await ProductModel.find({}).limit(limit).lean() as CachedProduct[];
-
-        result = dbData.map(product => ({
-          _id: product._id.toString(),
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          description: product.description,
-          company: product.company,
-          avatar: product.avatar,
-          material: product.material,
-          createdAt: product.createdAt,
-        }));
-
-        // Update cache with latest DB data
-        await client.del("products");
-        await client.lpush("products", ...result.map(item => JSON.stringify(item)));
-        await client.expire("products", 60 * 60 * 24); // 24h TTL
-
+        // Database operation
+        const dbData = await timeOperation(async () => {
+          await connectDB();
+          return await ProductModel.find({}).limit(limit).lean();
+        }, 'dbQuery');
+        
+        if (dbData.length > 0) {
+          // Cache write operation
+          await timeOperation(async () => {
+            const stringifiedData = dbData.map(item => JSON.stringify(item));
+            await client.del("products");
+            await client.lpush("products", ...stringifiedData);
+            await client.expire("products", 60 * 60 * 24);
+          }, 'cacheWrite');
+          
+          response.success = true;
+          response.data = dbData;
+          response.count = dbData.length;
+          response.source = 'database';
+          response.cacheInfo = { hit: false };
+        } else {
+          response.error = 'No data found in database';
+        }
         break;
       }
 
       case "cache": {
-        const cachedData = await client.lrange("products", 0, limit - 1);
-
+        // Cache read operation
+        const cachedData = await timeOperation(
+          () => client.lrange("products", 0, limit - 1),
+          'cacheRead'
+        );
+        
         if (cachedData.length > 0) {
-          cacheHit = true;
-          result = cachedData.map(item => JSON.parse(item));
+          const parsedData = cachedData.map(item => {
+            try {
+              return JSON.parse(item);
+            } catch (e) {
+              console.error('Error parsing cached item:', e);
+              return null;
+            }
+          }).filter(Boolean);
+          
+          // Get TTL
+          const ttl = await timeOperation(
+            () => client.ttl("products"),
+            'cacheRead'
+          );
+          
+          response.success = true;
+          response.data = parsedData;
+          response.count = parsedData.length;
+          response.source = 'cache';
+          response.cacheInfo = {
+            hit: true,
+            ttl
+          };
         } else {
-          // Fallback to DB
-          await connectDB();
-          const dbData = await ProductModel.find({}).limit(limit).lean() as CachedProduct[];
-
-          result = dbData.map(product => ({
-            _id: product._id.toString(),
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            description: product.description,
-            company: product.company,
-            avatar: product.avatar,
-            material: product.material,
-            createdAt: product.createdAt,
-          }));
-
-          // Save in cache
-          await client.del("products");
-          await client.lpush("products", ...result.map(item => JSON.stringify(item)));
-          await client.expire("products", 60 * 60 * 24);
+          response.error = 'No data found in cache';
         }
-
         break;
       }
 
       case "hybrid": {
-        const cachedData = await client.lrange("products", 0, limit - 1);
-        const cachedCount = cachedData.length;
-
-        const parsedCached = cachedData.map(item => JSON.parse(item) as Product);
-        cacheHit = cachedCount > 0;
-
-        if (cachedCount < limit) {
-          const remaining = limit - cachedCount;
-          await connectDB();
-          const dbData = await ProductModel.find({}).limit(remaining).lean() as CachedProduct[];
-
-          const parsedDb = dbData.map(product => ({
-            _id: product._id.toString(),
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            description: product.description,
-            company: product.company,
-            avatar: product.avatar,
-            material: product.material,
-            createdAt: product.createdAt,
-          }));
-
-          result = [...parsedCached, ...parsedDb];
-
-          // Merge and update cache
-          await client.del("products");
-          await client.lpush("products", ...result.map(item => JSON.stringify(item)));
-          await client.expire("products", 60 * 60 * 24);
+        // First try to get from cache
+        const cachedData = await timeOperation(
+          () => client.lrange("products", 0, limit - 1),
+          'cacheRead'
+        );
+        
+        if (cachedData.length >= limit) {
+          // If we have enough data in cache, return it
+          const parsedData = cachedData.map(item => JSON.parse(item)).slice(0, limit);
+          const ttl = await timeOperation(
+            () => client.ttl("products"),
+            'cacheRead'
+          );
+          
+          response.success = true;
+          response.data = parsedData;
+          response.count = parsedData.length;
+          response.source = 'cache';
+          response.cacheInfo = {
+            hit: true,
+            ttl
+          };
         } else {
-          result = parsedCached;
+          // If not enough in cache, get the rest from DB
+          const dbData = await timeOperation(async () => {
+            await connectDB();
+            const remainingLimit = limit - cachedData.length;
+            return await ProductModel.find({}).limit(remainingLimit).lean();
+          }, 'dbQuery');
+          
+          // Parse cached data
+          const parsedCached = cachedData.map(item => JSON.parse(item));
+          const combinedData = [...parsedCached, ...dbData];
+          
+          // Update cache with combined data if we got new data from DB
+          if (dbData.length > 0) {
+            await timeOperation(async () => {
+              const stringifiedData = combinedData.map(item => JSON.stringify(item));
+              await client.del("products");
+              await client.lpush("products", ...stringifiedData);
+              await client.expire("products", 60 * 60 * 24);
+            }, 'cacheWrite');
+          }
+          
+          // Get final TTL
+          const ttl = await timeOperation(
+            () => client.ttl("products"),
+            'cacheRead'
+          );
+          
+          response.success = true;
+          response.data = combinedData;
+          response.count = combinedData.length;
+          response.source = 'hybrid';
+          response.cacheInfo = {
+            hit: false,
+            ttl
+          };
         }
-
         break;
       }
 
       default:
-        throw new Error("Invalid mode specified");
+        response.error = 'Invalid mode specified. Use "db", "cache", or "hybrid"';
+        break;
     }
 
-    responseTime = Date.now() - startTime;
-    return {
-      data: result,
-      responseTime,
-      mode,
-      limit,
-      cacheHit,
-    };
+    // Update total time and log results
+    updateTotalTime();
+    
+    console.log(`[${new Date().toISOString()}] ${mode} fetch completed in ${response.timing?.total}ms`, 
+      response.success ? `(found ${response.count} items)` : `(error: ${response.error})`,
+      `\nTiming details: ${JSON.stringify(response.timing, null, 2)}`
+    );
 
+    return response;
+    
   } catch (error) {
-    console.error("Error in fetchData:", error);
-    responseTime = Date.now() - startTime;
-
-    const errorMessage =
-      error instanceof Error ? error.message :
-      typeof error === "string" ? error :
-      "An unknown error occurred";
-
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error(`[${new Date().toISOString()}] Error in fetchData (${mode}):`, error);
+    
     return {
-      data: [],
-      responseTime,
-      mode,
-      limit,
-      cacheHit: false,
-      error: errorMessage,
+      success: false,
+      error: `Failed to fetch data: ${errorMessage}`,
+      source: mode as 'database' | 'cache' | 'hybrid',
+      cacheInfo: { hit: false }
     };
-  } finally {
-    await client.quit().catch(console.error);
   }
 }

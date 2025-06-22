@@ -1,254 +1,397 @@
 "use client";
 
+import React, { useState, useRef, useEffect } from "react";
 import { fetchData } from "@/app/actions/DataFetching";
-import { FetchingFormData, Product, FetchResult } from "@/lib/types";
-import { useState, useRef } from "react";
-import { Loader2, Clock, Database, HardDrive, Layers } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import { FetchingFormData } from "@/lib/types";
+import { Loader2, Database, HardDrive, Layers, BarChart2 } from "lucide-react";
+
+interface Product {
+  _id: string;
+  id: string;
+  name: string;
+  avatar: string;
+  material: string;
+  company: string;
+  description: string;
+  price: number;
+  createdAt: string;
+  __v: number;
+}
+
+interface FetchResult {
+  success: boolean;
+  source: "db" | "cache" | "hybrid";
+  data: Product[];
+  count: number;
+  timing: {
+    total: number;
+    dbQuery: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
+  cacheInfo: {
+    hit: boolean;
+    ttl?: number;
+  };
+  fetchTimeMs: number;
+  cacheStatus: "hit" | "miss" | "none";
+  dataSource: "db" | "cache" | "hybrid";
+  timestamp: number;
+  error?: string;
+  message?: string;
+}
 
 export default function FetchingForm() {
-  const [mode, setMode] = useState<FetchingFormData['mode']>("db");
-  const [limit, setLimit] = useState(10);
-  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<FetchResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [limit, setLimit] = useState(10);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string>("");
+  const [mode, setMode] = useState<"cache" | "db" | "hybrid">("cache");
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    
-    const formData: FetchingFormData = { mode, limit };
-    
-    try {
-      const response = await fetchData(formData);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      setResult(response);
-      // Scroll to results after a small delay to ensure the DOM has updated
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      setResult(null);
-    } finally {
-      setIsLoading(false);
+  const createEmptyResult = (): FetchResult => ({
+    success: false,
+    source: "db",
+    data: [],
+    count: 0,
+    timing: {
+      total: 0,
+      dbQuery: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    cacheInfo: {
+      hit: false,
+    },
+    fetchTimeMs: 0,
+    cacheStatus: "none",
+    dataSource: "db",
+    timestamp: Date.now(),
+  });
+
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth" });
     }
+  }, [result]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    
+    // Create a new result with default values
+    const newResult = createEmptyResult();
+    newResult.source = mode;
+    newResult.dataSource = mode;
+    setResult(newResult);
+
+    try {
+      const start = Date.now();
+      
+      // Call the fetchData function with the current mode and limit
+      const response = await fetchData({ 
+        mode: mode as 'cache' | 'db' | 'hybrid', 
+        limit 
+      });
+      
+      const fetchTimeMs = Date.now() - start;
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to fetch data");
+      }
+
+      // Create the updated result with proper typing
+      const updatedResult: FetchResult = {
+        success: true,
+        data: response.data || [],
+        count: response.count || 0,
+        timing: response.timing || {
+          total: 0,
+          dbQuery: 0,
+          cacheRead: 0,
+          cacheWrite: 0
+        },
+        cacheInfo: response.cacheInfo || { hit: false },
+        fetchTimeMs,
+        source: mode,
+        dataSource: mode,
+        cacheStatus: (() => {
+          if (mode === "cache") return "hit";
+          if (mode === "hybrid") return response.cacheInfo?.hit ? "hit" : "miss";
+          return "none";
+        })(),
+        timestamp: Date.now(),
+      };
+
+      setResult(updatedResult);
+      console.log("Fetch successful, data count:", response.data?.length);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError((error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatPrice = (price: number) => {
+    return `$${price.toFixed(2)}`;
   };
 
   const getModeIcon = (mode: string) => {
     switch (mode) {
-      case 'db': return <Database className="w-5 h-5 mr-2" />;
-      case 'cache': return <HardDrive className="w-5 h-5 mr-2" />;
-      case 'hybrid': return <Layers className="w-5 h-5 mr-2" />;
-      default: return null;
+      case "db":
+        return <Database className="w-5 h-5 mr-2" />;
+      case "cache":
+        return <HardDrive className="w-5 h-5 mr-2" />;
+      case "hybrid":
+        return <Layers className="w-5 h-5 mr-2" />;
+      default:
+        return null;
     }
   };
 
   const getModeLabel = (mode: string) => {
     switch (mode) {
-      case 'db': return 'Database';
-      case 'cache': return 'Cache';
-      case 'hybrid': return 'Hybrid';
-      default: return mode;
+      case "db":
+        return "Database";
+      case "cache":
+        return "Cache";
+      case "hybrid":
+        return "Hybrid";
+      default:
+        return mode;
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-2xl">📊 Performance Analytics</CardTitle>
-          <CardDescription>
-            Compare the performance of different data fetching strategies
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="w-full">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900">Performance Analyzer</h2>
+          <p className="text-sm text-gray-500 mt-1">Test different data fetching strategies</p>
+        </div>
+        
+        <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="mode" className="block text-sm font-medium text-gray-700">
-                  Fetching Strategy
+                <label htmlFor="fetch-mode" className="block text-sm font-medium text-gray-700">
+                  Fetch Strategy
                 </label>
-                <select
-                  id="mode"
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as FetchingFormData['mode'])}
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                  disabled={isLoading}
-                >
-                  <option value="db">Database Only</option>
-                  <option value="cache">Cache Only</option>
-                  <option value="hybrid">Hybrid (Cache with DB fallback)</option>
-                </select>
+                <div className="relative">
+                  <select
+                    id="fetch-mode"
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value as 'cache' | 'db' | 'hybrid')}
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white"
+                    disabled={loading}
+                  >
+                    <option value="cache">🔄 Cache Only (Fastest)</option>
+                    <option value="db">💾 Database Only (Always Fresh)</option>
+                    <option value="hybrid">⚡ Hybrid (Cache First, then DB)</option>
+                  </select>
+                </div>
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="limit" className="block text-sm font-medium text-gray-700">
-                  Number of Items
+                <label htmlFor="product-count" className="block text-sm font-medium text-gray-700">
+                  Number of Products
                 </label>
-                <input
-                  type="number"
-                  id="limit"
-                  min={1}
-                  max={100}
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  disabled={isLoading}
-                />
+                <div className="relative rounded-md shadow-sm">
+                  <input
+                    type="number"
+                    id="product-count"
+                    min="1"
+                    max="1000"
+                    value={limit}
+                    onChange={(e) => setLimit(Math.min(1000, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-12 py-2.5 sm:text-sm border border-gray-300 rounded-md"
+                    placeholder="Enter number of products"
+                    disabled={loading}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center">
+                    <span className="text-gray-500 sm:text-sm mr-3">items</span>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div>
+            
+            <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full md:w-auto flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={loading}
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isLoading ? (
+                {loading ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                    Fetching Data...
+                    Analyzing...
                   </>
                 ) : (
-                  'Fetch Data'
+                  <>
+                    <BarChart2 className="-ml-1 mr-3 h-5 w-5" />
+                    Analyze Performance
+                  </>
                 )}
               </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Results Section */}
-      <div ref={resultsRef} className="mt-12">
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-            <p className="text-gray-600">Fetching data from {getModeLabel(mode)}...</p>
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 mb-4">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
           </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {result && (
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-xl">Results</CardTitle>
-                  <CardDescription className="mt-1">
-                    {result.data.length} items fetched from {getModeLabel(result.mode)}
-                    {result.cacheHit && ' (Cache Hit)'}
-                  </CardDescription>
+          <p className="text-gray-600">Fetching products...</p>
+        </div>
+      ) : result && (
+        <div ref={resultsRef} className="space-y-8">
+          {/* Stats Card */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Fetch Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Data Source</p>
+                <div className="flex items-center mt-1">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    result.source === 'cache' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {result.source === 'cache' ? 'Cache' : 'Database'}
+                  </span>
+                  {result.cacheInfo?.hit ? (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Hit
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Miss
+                    </span>
+                  )}
                 </div>
-                <div className="mt-2 sm:mt-0 flex items-center text-sm text-gray-500">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span>Response time: {result.responseTime}ms</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Avatar
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Product
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Company
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Price
-                      </th>
-                      
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {result?.data?.map((product: Product) => (
-                      <tr key={product._id} className="hover:bg-gray-50">
-                        <td>
-                          <Image
-                            src={product.avatar}
-                            alt={product.name}
-                            width={50}
-                            height={50}
-                          />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          
-                          <div className="text-sm font-medium text-gray-900">
-                            {product.name}
-                          </div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {product.description}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant="outline">
-                            {product.company || 'N/A'}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${product.price?.toFixed(2)}
-                        </td>
-                       
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
               
-              {/* Performance Summary */}
-              <div className="bg-gray-50 px-6 py-4 border-t">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <div className="flex items-center">
-                      {getModeIcon(mode)}
-                      <span>Mode: <span className="font-medium">{getModeLabel(mode)}</span></span>
-                    </div>
-                    {result?.cacheHit !== undefined && (
-                      <span className="ml-4 flex items-center">
-                        <HardDrive className={`w-4 h-4 mr-1 ${result?.cacheHit ? 'text-green-500' : 'text-gray-400'}`} />
-                        <span className={result?.cacheHit ? 'text-green-600' : 'text-gray-500'}>
-                          {result?.cacheHit ? 'Served from cache' : 'Served from database'}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Response Time</p>
+                <p className="text-xl font-semibold text-gray-900">{result.timing?.total || 0}ms</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {result.cacheInfo?.ttl ? `Cache expires in ${Math.floor((result.cacheInfo.ttl || 0) / 60)}m ${(result.cacheInfo.ttl || 0) % 60}s` : ''}
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Items Fetched</p>
+                <p className="text-xl font-semibold text-gray-900">{result.count}</p>
+              </div>
+            </div>
+            
+            {/* Products Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Image
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Company
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Material
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Added
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {result.data?.map((product) => (
+                    <tr key={product._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <img 
+                            className="h-10 w-10 rounded-full object-cover" 
+                            src={product.avatar || 'https://via.placeholder.com/40?text=No+Image'} 
+                            alt={product.name}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://via.placeholder.com/40?text=No+Image';
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                        <div className="text-xs text-gray-500 line-clamp-2 mt-1">{product.description}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{product.company}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 capitalize">
+                          {product.material.toLowerCase()}
                         </span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-1 text-gray-500" />
-                    <span className="font-medium">{result?.responseTime || 0}ms</span>
-                    <span className="ml-1 text-gray-500">response time</span>
-                  </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatPrice(product.price)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(product.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Performance Metrics */}
+            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Performance Metrics</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div className="bg-white p-3 rounded border border-gray-200">
+                  <div className="text-xs text-gray-500 mb-1">Total Time</div>
+                  <div className="font-medium">{result.timing?.total || 0} ms</div>
+                </div>
+                <div className="bg-white p-3 rounded border border-gray-200">
+                  <div className="text-xs text-gray-500 mb-1">DB Query</div>
+                  <div className="font-medium">{result.timing?.dbQuery || 0} ms</div>
+                </div>
+                <div className="bg-white p-3 rounded border border-gray-200">
+                  <div className="text-xs text-gray-500 mb-1">Cache Read</div>
+                  <div className="font-medium">{result.timing?.cacheRead || 0} ms</div>
+                </div>
+                <div className="bg-white p-3 rounded border border-gray-200">
+                  <div className="text-xs text-gray-500 mb-1">Cache Write</div>
+                  <div className="font-medium">{result.timing?.cacheWrite || 0} ms</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              {result.cacheInfo?.ttl && (
+                <div className="mt-3 text-xs text-gray-500">
+                  Cache expires in {Math.floor((result.cacheInfo.ttl || 0) / 60)}m {(result.cacheInfo.ttl || 0) % 60}s
+                </div>
+              )}
+            </div>
+          </div>  
+        </div>
+      )}
     </div>
   );
 }
