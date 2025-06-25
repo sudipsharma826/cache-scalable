@@ -47,7 +47,23 @@ export default function ReportPage() {
   }, []);
 
   if (error) return <div className="p-8 text-red-500">{error}</div>;
-  if (!data) return <div className="p-8">Loading...</div>;
+  if (!data)
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="relative flex items-center justify-center w-24 h-24 mb-6">
+          {/* Circular spinner */}
+          <span className="absolute inline-flex w-full h-full rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></span>
+          {/* Logo in the center */}
+          <img
+            src="/logo7.png"
+            alt="Logo"
+            className="w-12 h-12 rounded-full z-10"
+            style={{ background: "white" }}
+          />
+        </div>
+        <p className="text-gray-600 text-lg font-medium">Loading report...</p>
+      </div>
+    );
 
   const modes = ["db", "cache", "hybrid"] as const;
   const colors = {
@@ -55,25 +71,93 @@ export default function ReportPage() {
     cache: "rgba(16,185,129,1)",
     hybrid: "rgba(251,191,36,1)",
   };
+  const bgColors = {
+    db: "rgba(59,130,246,0.08)",
+    cache: "rgba(16,185,129,0.08)",
+    hybrid: "rgba(251,191,36,0.08)",
+  };
+
+  // Show only the last 10 records for each mode
+  const N = 10;
+  const trimmedData: Record<string, TimingEntry[]> = {};
+  modes.forEach(mode => {
+    trimmedData[mode] = data[mode].slice(-N);
+  });
+
+  // Use 1, 2, 3, ... as X-axis labels
+  const maxLen = Math.max(...modes.map(mode => trimmedData[mode].length));
+  const labels = Array.from({ length: maxLen }, (_, i) => `Run ${i + 1}`);
 
   // Prepare chart data
   const chartData = {
-    labels: Array.from(
-      new Set(
-        modes.flatMap(mode =>
-          data[mode].map(e => formatDate(e.timestamp))
-        )
-      )
-    ),
+    labels,
     datasets: modes.map(mode => ({
       label: mode.toUpperCase(),
-      data: data[mode].map(e => e.total),
+      data: trimmedData[mode].map(e => e.total),
       borderColor: colors[mode],
-      backgroundColor: colors[mode],
-      tension: 0.3,
-      fill: false,
+      backgroundColor: bgColors[mode],
+      tension: 0.4,
+      fill: true,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBackgroundColor: colors[mode],
+      pointBorderColor: "#fff",
+      borderWidth: 2,
     })),
   };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: true, position: "top" },
+      title: { display: true, text: "Fetch Time (ms) by Mode", font: { size: 20 } },
+      tooltip: {
+        mode: "index" as const,
+        intersect: false,
+        callbacks: {
+          label: function(context: any) {
+            return `${context.dataset.label}: ${context.parsed.y} ms`;
+          }
+        }
+      }
+    },
+    interaction: {
+      mode: "nearest" as const,
+      axis: "x" as const,
+      intersect: false,
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Test Run" },
+        grid: { display: true, color: "#e5e7eb" },
+        ticks: { font: { size: 14 } }
+      },
+      y: {
+        title: { display: true, text: "Fetch Time (ms)" },
+        grid: { display: true, color: "#e5e7eb" },
+        beginAtZero: true,
+        ticks: { font: { size: 14 } }
+      },
+    },
+  };
+
+  // Calculate stats for all modes
+  const statsByMode = modes.map(mode => ({
+    mode,
+    ...calcStats(data[mode]),
+    runs: data[mode].length,
+  }));
+
+  // Rank modes by avg (lower is better)
+  const ranked = [...statsByMode].sort((a, b) => a.avg - b.avg);
+
+  // Assign rank and color indicator
+  const rankColors = ["bg-green-100 text-green-800", "bg-yellow-100 text-yellow-800", "bg-red-100 text-red-800"];
+  const rankIcons = [
+    <span key="fast" title="Fastest" className="inline-block mr-1 align-middle">🚀</span>,
+    <span key="mid" title="Average" className="inline-block mr-1 align-middle">⚡</span>,
+    <span key="slow" title="Slowest" className="inline-block mr-1 align-middle">🐢</span>,
+  ];
 
   return (
     <div className="max-w-4xl mx-auto py-10">
@@ -83,31 +167,43 @@ export default function ReportPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-8">
-            <Line data={chartData} options={{
-              responsive: true,
-              plugins: {
-                legend: { display: true, position: "top" },
-                title: { display: true, text: "Fetch Time (ms) by Mode" },
-              },
-              scales: {
-                x: { title: { display: true, text: "Date/Time" } },
-                y: { title: { display: true, text: "Fetch Time (ms)" } },
-              },
-            }} />
+            {/* @ts-expect-error Chart.js types can be incompatible, but this is safe */}
+            <Line data={chartData} options={chartOptions} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {modes.map(mode => {
-              const stats = calcStats(data[mode]);
-              return (
-                <div key={mode} className="bg-gray-50 rounded-lg p-4">
-                  <div className="font-semibold mb-2">{mode.toUpperCase()}</div>
-                  <div className="text-sm">Avg: <span className="font-mono">{stats.avg.toFixed(2)} ms</span></div>
-                  <div className="text-sm">Min: <span className="font-mono">{stats.min} ms</span></div>
-                  <div className="text-sm">Max: <span className="font-mono">{stats.max} ms</span></div>
-                  <div className="text-xs text-gray-500 mt-2">Total: {data[mode].length} runs</div>
+            {ranked.map((stat, idx) => (
+              <div
+                key={stat.mode}
+                className={`rounded-lg p-4 border ${rankColors[idx] || "bg-gray-50 text-gray-800"}`}
+                style={{ boxShadow: idx === 0 ? "0 0 0 2px #22c55e33" : undefined }}
+              >
+                <div className="flex items-center mb-2">
+                  {rankIcons[idx]}
+                  <span className="font-semibold text-base">{stat.mode.toUpperCase()}</span>
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/70 border border-gray-200 text-gray-700">
+                    Rank {idx + 1}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="flex flex-col gap-1 mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Average</span>
+                    <span className="font-mono font-bold text-base">{stat.avg.toFixed(2)} ms</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Min</span>
+                    <span className="font-mono text-sm">{stat.min} ms</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Max</span>
+                    <span className="font-mono text-sm">{stat.max} ms</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-400">Total Runs</span>
+                    <span className="text-xs text-gray-600">{stat.runs}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

@@ -262,11 +262,25 @@ export default function FetchingForm() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 mb-4">
-            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="relative flex items-center justify-center w-24 h-24 mb-6">
+            {/* Circular spinner */}
+            <span className="absolute inline-flex w-full h-full rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></span>
+            {/* Logo in the center */}
+            <img
+              src="/logo7.png"
+              alt="Logo"
+              className="w-12 h-12 rounded-full z-10"
+              style={{ background: "white" }}
+            />
           </div>
-          <p className="text-gray-600">Fetching products...</p>
+          <p className="text-gray-600 text-lg font-medium">Fetching products...</p>
+          {/* Optional: skeleton for table */}
+          <div className="mt-8 space-y-4 w-full max-w-2xl">
+            <div className="h-6 bg-gray-200 rounded w-1/3 mx-auto animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto animate-pulse" />
+            <div className="h-32 bg-gray-100 rounded w-full animate-pulse" />
+          </div>
         </div>
       ) : result && (
         <div ref={resultsRef} className="space-y-8">

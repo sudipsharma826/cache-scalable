@@ -48,32 +48,37 @@ export function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
             <Link href="/" className="nav-link">Home</Link>
-
             {/* Dropdown */}
             <div
               className="relative"
               onMouseEnter={() => setShowDocument(true)}
               onMouseLeave={() => setShowDocument(false)}
             >
-              <button className="nav-link flex items-center gap-1">
+              <button
+                className="nav-link flex items-center gap-1"
+                aria-haspopup="true"
+                aria-expanded={showDocument}
+                tabIndex={0}
+                onFocus={() => setShowDocument(true)}
+                onBlur={() => setShowDocument(false)}
+                type="button"
+              >
                 Documentation <ChevronDown className="w-4 h-4" />
               </button>
               {showDocument && (
-              <div className="absolute left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg z-20">
-                <Link href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Proposal</Link>
-                <Link href="#" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Report</Link>
-              </div>
-            )}
+                <div className="absolute left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg z-20">
+                  <Link href="/proposal" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Proposal</Link>
+                  <Link href="/report" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Report</Link>
+                </div>
+              )}
             </div>
             <Link href="/analysis" className="nav-link">Performance Analysis</Link>
-
-            
-
             {/* GitHub Button */}
             <a
               href="https://github.com/sudipsharma826/cache-scalable"
               aria-label="GitHub"
               className="text-muted-foreground hover:text-primary transition"
+              target="_blank" rel="noopener noreferrer"
             >
               <Github className="h-5 w-5" />
             </a>
@@ -87,12 +92,12 @@ export function Navbar() {
               size="icon"
               onClick={toggleTheme}
               className="relative hover:scale-110 transition"
+              aria-label="Toggle theme"
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
-
             {/* Mobile Menu Button */}
             <div className="md:hidden">
               <Button
@@ -100,6 +105,7 @@ export function Navbar() {
                 size="icon"
                 onClick={toggleMenu}
                 className="transition hover:scale-105"
+                aria-label="Toggle main menu"
               >
                 {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 <span className="sr-only">Toggle main menu</span>
@@ -110,9 +116,8 @@ export function Navbar() {
 
         {/* Mobile Nav */}
         {isOpen && (
-          <div className="md:hidden mt-4 border-t border-border/40 pt-4 space-y-2">
-            <Link href="#" className="mobile-link">Home</Link>
-
+          <div className="md:hidden mt-4 border-t border-border/40 pt-4 space-y-2 animate-fade-in">
+            <Link href="/" className="mobile-link" onClick={() => setIsOpen(false)}>Home</Link>
             {/* Dropdown for Mobile */}
             <details className="group">
               <summary className="mobile-link cursor-pointer flex items-center justify-between">
@@ -120,19 +125,22 @@ export function Navbar() {
                 <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
               </summary>
               <div className="ml-4 mt-1 space-y-1">
-                <Link href="#" className="mobile-sub-link">Proposal</Link>
-                <Link href="#" className="mobile-sub-link">Report</Link>
+                <Link href="/proposal" className="mobile-sub-link" onClick={() => setIsOpen(false)}>Proposal</Link>
+                <Link href="/report" className="mobile-sub-link" onClick={() => setIsOpen(false)}>Report</Link>
               </div>
             </details>
-
-            <Link href="#" className="mobile-link">Contact</Link>
-            <Link href="#" className="mobile-link flex items-center gap-2">
+            <Link href="/analysis" className="mobile-link" onClick={() => setIsOpen(false)}>Performance Analysis</Link>
+            <a
+              href="https://github.com/sudipsharma826/cache-scalable"
+              className="mobile-link flex items-center gap-2"
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => setIsOpen(false)}
+            >
               <Github className="h-5 w-5" /> GitHub
-            </Link>
+            </a>
           </div>
         )}
       </div>
-
       {/* Styles for Nav links */}
       <style jsx>{`
         .nav-link {
@@ -146,6 +154,13 @@ export function Navbar() {
         }
         .mobile-sub-link {
           @apply block px-4 py-1 pl-4 rounded-md text-sm text-muted-foreground hover:text-primary transition;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px);}
+          to { opacity: 1; transform: translateY(0);}
         }
       `}</style>
     </nav>
