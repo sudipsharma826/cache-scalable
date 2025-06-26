@@ -161,12 +161,12 @@ export default function ReportPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-10">
-      <Card>
+      <Card className="bg-background dark:bg-gray-900 text-foreground dark:text-gray-100 transition-colors">
         <CardHeader>
           <CardTitle>Fetch Performance Report</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-8">
+          <div className="mb-8 bg-background dark:bg-gray-900 rounded-lg p-4 transition-colors">
             {/* @ts-expect-error Chart.js types can be incompatible, but this is safe */}
             <Line data={chartData} options={chartOptions} />
           </div>
@@ -174,7 +174,7 @@ export default function ReportPage() {
             {ranked.map((stat, idx) => (
               <div
                 key={stat.mode}
-                className={`rounded-lg p-4 border ${rankColors[idx] || "bg-gray-50 text-gray-800"}`}
+                className={`rounded-lg p-4 border ${rankColors[idx] || "bg-gray-50 text-gray-800"} bg-background dark:bg-gray-800 text-foreground dark:text-gray-100 transition-colors`}
                 style={{ boxShadow: idx === 0 ? "0 0 0 2px #22c55e33" : undefined }}
               >
                 <div className="flex items-center mb-2">

@@ -14,19 +14,19 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-background dark:bg-gray-950 text-foreground dark:text-gray-100 transition-colors">
       {/* Hero Section */}
       <section className="pt-24 pb-16 md:pt-32 md:pb-24">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
+            <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-sm font-medium mb-6 transition-colors">
               <Zap className="w-4 h-4 mr-2" />
               Performance Optimized
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6 transition-colors">
               Cache Scalable Performance Analysis
             </h1>
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto transition-colors">
               Get a comprehensive overview of performance scaling with caching and analytics.
               Optimize your application's speed and efficiency with real-time insights.
             </p>
@@ -60,12 +60,15 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section ref={featuresRef} className="py-16 bg-gray-50">
+      <section ref={featuresRef} className="py-16 bg-gray-50 dark:bg-gray-900 transition-colors">
         <div className="container mx-auto px-4">
-
           <div className="space-y-8">
-            <FetchingForm />
-            <RedisPanel />
+            <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl shadow-sm p-6 transition-colors">
+              <FetchingForm />
+            </div>
+            <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl shadow-sm p-6 transition-colors">
+              <RedisPanel />
+            </div>
           </div>
         </div>
       </section>

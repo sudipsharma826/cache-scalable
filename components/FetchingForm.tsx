@@ -182,17 +182,16 @@ export default function FetchingForm() {
 
   return (
     <div className="w-full">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Performance Analyzer</h2>
-          <p className="text-sm text-gray-500 mt-1">Test different data fetching strategies</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden text-gray-900 dark:text-gray-100 transition-colors">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Performance Analyzer</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">Test different data fetching strategies</p>
         </div>
-        
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="fetch-mode" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="fetch-mode" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Fetch Strategy
                 </label>
                 <div className="relative">
@@ -200,7 +199,7 @@ export default function FetchingForm() {
                     id="fetch-mode"
                     value={mode}
                     onChange={(e) => setMode(e.target.value as 'cache' | 'db' | 'hybrid')}
-                    className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors"
                     disabled={loading}
                   >
                     <option value="cache">🔄 Cache Only (Fastest)</option>
@@ -209,9 +208,8 @@ export default function FetchingForm() {
                   </select>
                 </div>
               </div>
-              
               <div className="space-y-2">
-                <label htmlFor="product-count" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="product-count" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Number of Products
                 </label>
                 <div className="relative rounded-md shadow-sm">
@@ -222,22 +220,20 @@ export default function FetchingForm() {
                     max="100"
                     value={limit}
                     onChange={(e) => setLimit(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-12 py-2.5 sm:text-sm border border-gray-300 rounded-md"
+                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-3 pr-12 py-2.5 sm:text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors"
                     placeholder="Enter number of products"
                     disabled={loading}
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center">
-                    <span className="text-gray-500 sm:text-sm mr-3">items</span>
+                    <span className="text-gray-500 dark:text-gray-300 sm:text-sm mr-3">items</span>
                   </div>
                 </div>
               </div>
             </div>
-            
             {/* Error message display */}
             {error && (
-              <div className="text-red-600 text-sm font-medium">{error}</div>
+              <div className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</div>
             )}
-            
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -285,11 +281,11 @@ export default function FetchingForm() {
       ) : result && (
         <div ref={resultsRef} className="space-y-8">
           {/* Stats Card */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Fetch Information</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Fetch Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500">Data Source</p>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 dark:text-gray-300">Data Source</p>
                 <div className="flex items-center mt-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     result.source === 'cache' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
@@ -308,23 +304,23 @@ export default function FetchingForm() {
                 </div>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500">Response Time</p>
-                <p className="text-xl font-semibold text-gray-900">{result.timing?.total || 0}ms</p>
-                <p className="text-xs text-gray-500 mt-1">
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 dark:text-gray-300">Response Time</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{result.timing?.total || 0}ms</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {result.cacheInfo?.ttl ? `Cache expires in ${Math.floor((result.cacheInfo.ttl || 0) / 60)}m ${(result.cacheInfo.ttl || 0) % 60}s` : ''}
                 </p>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-500">Items Fetched</p>
-                <p className="text-xl font-semibold text-gray-900">{result.count}</p>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <p className="text-sm text-gray-500 dark:text-gray-300">Items Fetched</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{result.count}</p>
               </div>
             </div>
             
             {/* Products Table */}
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -364,21 +360,21 @@ export default function FetchingForm() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-xs text-gray-500 line-clamp-2 mt-1">{product.description}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{product.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">{product.description}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{product.company}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">{product.company}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 capitalize">
                           {product.material.toLowerCase()}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {formatPrice(product.price)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(product.createdAt)}
                       </td>
                     </tr>
@@ -388,28 +384,28 @@ export default function FetchingForm() {
             </div>
             
             {/* Performance Metrics */}
-            <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Performance Metrics</h3>
+            <div className="mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Performance Metrics</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-xs text-gray-500 mb-1">Total Time</div>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Time</div>
                   <div className="font-medium">{result.timing?.total || 0} ms</div>
                 </div>
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-xs text-gray-500 mb-1">DB Query</div>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">DB Query</div>
                   <div className="font-medium">{result.timing?.dbQuery || 0} ms</div>
                 </div>
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-xs text-gray-500 mb-1">Cache Read</div>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cache Read</div>
                   <div className="font-medium">{result.timing?.cacheRead || 0} ms</div>
                 </div>
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <div className="text-xs text-gray-500 mb-1">Cache Write</div>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cache Write</div>
                   <div className="font-medium">{result.timing?.cacheWrite || 0} ms</div>
                 </div>
               </div>
               {result.cacheInfo?.ttl && (
-                <div className="mt-3 text-xs text-gray-500">
+                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                   Cache expires in {Math.floor((result.cacheInfo.ttl || 0) / 60)}m {(result.cacheInfo.ttl || 0) % 60}s
                 </div>
               )}

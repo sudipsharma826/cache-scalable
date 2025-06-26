@@ -3,7 +3,7 @@ import { Heart, Github, Twitter, Linkedin, Facebook } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-border/40 bg-background">
+    <footer className="w-full bg-background dark:bg-gray-950 border-t border-border/40 text-foreground dark:text-gray-100 transition-colors py-6">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-12">
           <div className="mt-12 pt-8 border-t border-border/40">

@@ -28,7 +28,7 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 dark:bg-gray-950/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300 text-foreground dark:text-gray-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Brand */}

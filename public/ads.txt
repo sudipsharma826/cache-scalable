@@ -1,0 +1,2 @@
+google.com, ca-pub-6851464724936985, DIRECT, f08c47fec0942fa0
+google.com, ${NEXT_PUBLIC_ADSENSE_CLIENT}, DIRECT, f08c47fec0942fa0
